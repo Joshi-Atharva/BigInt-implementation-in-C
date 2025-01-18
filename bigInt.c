@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 typedef enum{POSITIVE, NEGATIVE} Sign;
-
+typedef enum{FALSE, TRUE} Boolean;
 typedef int int32;
 typedef long long int int64;
 typedef unsigned int uint32;
@@ -49,8 +49,6 @@ void SetBigIntHex(char* hex, bigInt* bint_ptr) {
     uint32 str_len, start, ints_idx, nibble_idx, hex_digit_cnt, str_idx, sum, prev_sum;
     Sign num_sign;
 
-    str_len = strlen(hex);
-
     uint32* ints_ptr = bint_ptr->ints;
 
     if( hex[0] == '-' ) {
@@ -68,12 +66,15 @@ void SetBigIntHex(char* hex, bigInt* bint_ptr) {
     bint_ptr->sign = num_sign;
 
     ints_idx = 0;
+    str_len = strlen(hex);
     str_idx = str_len - 1;
-    while( ints_idx < 32 && str_idx >= start ) {
+    uint32 prev_str_idx = str_len; // to handle the overflow condition
+    while( ints_idx < 32 && (str_idx >= start) && (prev_str_idx > str_idx ) ) {
         nibble_idx = 0; 
-        while( nibble_idx < 8 && str_idx >= start ) { // there are 8 nibbles in one uint32 variable
+        while( nibble_idx < 8 && str_idx >= start && (prev_str_idx > str_idx )) { // there are 8 nibbles in one uint32 variable
             ints_ptr[ints_idx] += (HexChar2Num(hex[str_idx]) << (nibble_idx*4));
             nibble_idx += 1;
+            prev_str_idx = str_idx;
             str_idx -= 1;
         }
         ints_idx += 1;
@@ -100,7 +101,7 @@ char* Print_bigInt_hex(bigInt* bint_ptr) {
     uint32* ints_ptr = bint_ptr->ints;
     uint32 ints_idx = 0, str_idx = 0; uint32 num, digit_idx, part;
     char dec2hex[] = "0123456789ABCDEF"; /* dictionary implementation using string for decimal to hex digit conversion */
-
+    uint32 first_non_zero_idx = 65;
     while( ints_idx < 32 && str_idx < 64 ) {
         num = ints_ptr[ints_idx]; 
         part = 0;
@@ -140,10 +141,33 @@ char* Print_bigInt_hex(bigInt* bint_ptr) {
     if( str_start[1] == '\0' ) {
         str_start = str_start - 1;
     }
+
+    
     */
 
+    // removal of zeros - shifting approach
+    uint32 i = 1; Boolean found = FALSE;
+    while( (s[i] != '\0') && !found ) {
+        if( s[i] != '0' ) {
+            found = TRUE;
+            first_non_zero_idx = i;
+        }
+        else {
+            i = i + 1;
+        }
+    }
+    i = 1;
+    while( (i + first_non_zero_idx - 1) < 65) { // s[i + first_non_zero_idx - 1] != '\0'
+        s[i] = s[i + first_non_zero_idx - 1];
+        i = i + 1;
+    }
+    s[i] = '\0';
+    if( i == 1 ) {
+        s[0] = '0';
+        s[1] = '\0';
+    } // to stay consistent with code convention (in case of any unexpected error), use +, and to stay consistent with math, skip it (and make changes in code where necessary)
     // string printing and return 
-    printf("%s\n", str_start);
+    printf("%s\n", s);
     return s;
 }
 
@@ -187,6 +211,18 @@ bigInt SubtractBigInts(bigInt b1, bigInt b2) {
         ret_val.sign = NEGATIVE;
     }
     else { /* both positive */
+        uint32 i, borrow;
+        i = 0, borrow = 0;
+        while( i < 32 ) {
+            ret_val.ints[i] = b1.ints[i] - b2.ints[i] - borrow;
+            if( (borrow && (ret_val.ints[i] >= b1.ints[i])) || (!borrow && (ret_val.ints[i] > b1.ints[i])) ) {
+                borrow = 1;
+            }
+            else {
+                borrow = 0;
+            }
+            i = i + 1;
+        }
     }
     return ret_val;
 }
@@ -201,7 +237,7 @@ bigInt AddBigInts(bigInt b1, bigInt b2) {
         i = 0; carry = 0;
         while( i < 32 ) {
             ret_val.ints[i] = b1.ints[i] + b2.ints[i] + carry;
-            if( ret_val.ints[i] < b1.ints[i] ) {
+            if( (!carry && (ret_val.ints[i] < b1.ints[i])) || (carry && (ret_val.ints[i] <= b1.ints[i])) ) {
                 carry = 1;
             }
             else {
@@ -234,7 +270,7 @@ int main() {
     char input2_dec[] = "8902384390968597266";
     char input2_hex[] = "7B8B9F6FCDAA5B12";
     char addition_dec[] = "12804768781906621150";
-    char addition_hex[] = "B1B3AD5D548E32DE";
+    char addition_hex[] = "+B1B3AD5D548E32DE";
     bigInt bint1, bint2, result, dummy; char* output;
     char *str_bint1, *str_bint2, *str_result, *str_dummy;
 
@@ -267,14 +303,20 @@ int main() {
 
     // comparing return string with target value:
     if( strcmp(str_result, addition_hex) == 0 ) {
-        printf("strings are same\n");
+        printf("Output and target strings match\n");
     }
     else {
-        printf("strings differ\n");
+        printf("Output and target strings differ\n");
     }
 
     free(str_result); str_result = NULL;
     
+    // subtracting them
+    result = SubtractBigInts(bint2, bint1);
+    printf("Subtraction result:\n");
+    str_result = Print_bigInt_hex(&result);
+    free(str_result); str_result = NULL;
+
     // freeing dynamically allocated space for bigInts:
     FreeBigInt(&bint1); FreeBigInt(&bint2); FreeBigInt(&result);
     return 0;
