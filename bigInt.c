@@ -357,7 +357,7 @@ bigInt MultiplyBigInts(bigInt b1, bigInt b2) {
     int i = 0;
     while( i < 32 ) {
         products[i] = (uint64*)malloc(sizeof(uint64)*32);
-        i = i = 1;
+        i = i + 1;
     }
 
     int j = 0; i = 0;
@@ -398,6 +398,7 @@ bigInt MultiplyBigInts(bigInt b1, bigInt b2) {
     i = 0; j = 0;
     while( i < 32 ) {
         free(products[i]); products[i] = NULL;
+        i = i + 1;
     }
     free(products); products = NULL;
 
@@ -461,11 +462,17 @@ int main() {
     free(str_result); str_result = NULL;
 
     // multiplying two inputs
-    char MultInput1[] = "136411B3"; // 325325235 dec
-    char MultInput2[] = "4BBEE5251B"; // 325325235483 dec
-    char Answer[] = "5BCC6CFE7313BBCE1"; // 105836508684937313505 dec
-    SetBigIntHex(MultInput1, &bint1);
-    SetBigIntHex(MultInput2, &bint2);
+    char MultInput1[] = "7"; // 325325235 dec
+    char MultInput2[] = "5"; // 325325235483 dec
+    char Answer[] = "19"; // 105836508684937313505 dec
+    // 34740525889446160134312415869485101144 dec = 0x1A22C82B374E642EB01AB6362332B058 
+    printf("before mult set:\n");
+    PrintAsItIs(&bint1); PrintAsItIs(&bint2);
+    // SetBigIntHex(MultInput1, &bint1);
+    // SetBigIntHex(MultInput2, &bint2);
+
+    printf("after mult set:\n");
+    PrintAsItIs(&bint1); PrintAsItIs(&bint2);
     result = MultiplyBigInts(bint1, bint2);
     printf("Multiplication result:\n");
     str_result = Print_bigInt_hex(&result);
