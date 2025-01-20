@@ -17,6 +17,14 @@ typedef struct int1024_tag {
     uint32* ints;
 }bigInt;
 
+void SetX(bigInt* bint_ptr, uint32 X) {
+    bint_ptr->ints[0] = X;
+    int i = 1;
+    while( i < 32 ) {
+        bint_ptr->ints[i] = 0;
+        i = i + 1;
+    }
+}
 void InitialiseBigInt(bigInt* bint_ptr) {
     uint32* ret_ptr = (uint32*)malloc(32*sizeof(uint32));
     uint32 i = 0;
@@ -26,6 +34,13 @@ void InitialiseBigInt(bigInt* bint_ptr) {
     }
     bint_ptr->sign = POSITIVE;
     bint_ptr->ints = ret_ptr;
+}
+
+bigInt* bigIntX(uint32 X) {
+    bigInt* bint_ptr;
+    InitialiseBigInt(bint_ptr);
+    bint_ptr->ints[0] = X;
+    return bint_ptr;
 }
 
 uint32 HexChar2Num(char c) {
@@ -191,53 +206,102 @@ void PrintAsItIs(bigInt* bint_ptr) {
 
 // function prototypes
 bigInt SubtractBigInts(bigInt, bigInt);
-bigInt AddBigInts(bigInt, bigInt);
+void AddBigInts(bigInt, bigInt, bigInt*, bigInt*);
 
-bigInt SubtractBigInts(bigInt b1, bigInt b2) {
-    bigInt ret_val;
-    InitialiseBigInt(&ret_val);
-    if( b1.sign == POSITIVE && b2.sign == NEGATIVE ) {
-        b2.sign = POSITIVE;
-        ret_val = AddBigInts(b1, b2);
+// returns true if b1 < b2 else returns false
+Boolean CompareBigInts(bigInt b1, bigInt b2) {
+    int ints_idx = 31; Boolean ret_val;
+    if( b1.sign == NEGATIVE && b2.sign == POSITIVE ) {
+        ret_val = TRUE;
     }
-    else if( b1.sign == NEGATIVE && b2.sign ==  NEGATIVE ) {
+    else if( b1.sign == POSITIVE && b2.sign == NEGATIVE ) {
+        ret_val = FALSE;
+    }
+    else if( b1.sign == NEGATIVE && b2.sign == NEGATIVE ) {
         b1.sign = POSITIVE;
         b2.sign = POSITIVE;
-        ret_val = SubtractBigInts(b2, b1);
+        ret_val = CompareBigInts(b2, b1); 
+        // inverting and comparing: b1 <= b2 => -b2 <= -b1
+        // and b1 > b2 => -b2 > -b1
     }
-    else if( b1.sign == NEGATIVE && b2.sign == POSITIVE ) {
-        b1.sign = POSITIVE; b2.sign = POSITIVE;
-        ret_val = AddBigInts(b1, b2);
-        ret_val.sign = NEGATIVE;
-    }
-    else { /* both positive */
-        uint32 i, borrow;
-        i = 0, borrow = 0;
-        while( i < 32 ) {
-            ret_val.ints[i] = b1.ints[i] - b2.ints[i] - borrow;
-            if( (borrow && (ret_val.ints[i] >= b1.ints[i])) || (!borrow && (ret_val.ints[i] > b1.ints[i])) ) {
-                borrow = 1;
+    else if( b1.sign == POSITIVE && b2.sign == POSITIVE ) {
+        Boolean done = FALSE; 
+        ret_val = FALSE;
+        while( ints_idx >= 0 && !done ) {
+            if( b1.ints[ints_idx] != b2.ints[ints_idx] ) {
+                done = TRUE;
+                ret_val = (b1.ints[ints_idx] < b2.ints[ints_idx]); // ret_val = TRUE if b1 < b2 else if b1 > b2 it is FALSE (equality not possible due to if condition)
             }
             else {
-                borrow = 0;
+                ints_idx = ints_idx - 1;
             }
-            i = i + 1;
         }
     }
     return ret_val;
 }
-
-bigInt AddBigInts(bigInt b1, bigInt b2) {
-    Sign bs1 = b1.sign, bs2 = b2.sign;
-    bigInt ret_val;
+bigInt SubtractBigInts(bigInt b1, bigInt b2) {
+    bigInt ret_val, carry;
     InitialiseBigInt(&ret_val);
+    InitialiseBigInt(&carry);
+
+    if( CompareBigInts(b1, b2) == TRUE ) { /* ie b1 < b2 */
+        ret_val = SubtractBigInts(b2, b1);
+        ret_val.sign = NEGATIVE; 
+    }
+    else { /* b1 >= b2 */
+        if( b1.sign == POSITIVE && b2.sign == NEGATIVE ) {
+            b2.sign = POSITIVE;
+            AddBigInts(b1, b2, &carry, &ret_val);
+        }
+        else if( b1.sign == NEGATIVE && b2.sign ==  NEGATIVE ) {
+            b1.sign = POSITIVE;
+            b2.sign = POSITIVE;
+            ret_val = SubtractBigInts(b2, b1);
+        }
+        else if( b1.sign == NEGATIVE && b2.sign == POSITIVE ) { // obsolete possibility - does not occur given the use of CompareBigInts() in the if-else block
+            b1.sign = POSITIVE; b2.sign = POSITIVE;
+            AddBigInts(b1, b2, &carry, &ret_val);
+            ret_val.sign = NEGATIVE;
+        }
+        else { /* both positive */
+            uint32 i, borrow;
+            i = 0, borrow = 0;
+            while( i < 32 ) {
+                ret_val.ints[i] = b1.ints[i] - b2.ints[i] - borrow;
+                if( (borrow && (ret_val.ints[i] >= b1.ints[i])) || (!borrow && (ret_val.ints[i] > b1.ints[i])) ) {
+                    borrow = 1;
+                }
+                else {
+                    borrow = 0;
+                }
+                i = i + 1;
+            }
+        }
+    } /* endif: b1 > b2 */
+    return ret_val;
+}
+
+void HalfAdder(uint64 a, uint64 b, uint64* res_ptr, uint64* carry_ptr) {
+    uint64 carry = 0;
+    *res_ptr = a + b + carry;
+    // function is not made to handle the case of carry other than 0 or 1
+    if( (!carry && (*res_ptr < a)) || (carry && (*res_ptr <= a)) ) {
+        *carry_ptr += 1;
+    }
+    else {
+        *carry_ptr += 0;
+    }
+}
+
+void AddBigInts(bigInt b1, bigInt b2, bigInt* carry_ptr, bigInt* result_ptr) {
+    Sign bs1 = b1.sign, bs2 = b2.sign;
     if( !bs1 && !bs2 ) {
         /* root case - adding two positive numbers */
         uint32 i, carry;
         i = 0; carry = 0;
         while( i < 32 ) {
-            ret_val.ints[i] = b1.ints[i] + b2.ints[i] + carry;
-            if( (!carry && (ret_val.ints[i] < b1.ints[i])) || (carry && (ret_val.ints[i] <= b1.ints[i])) ) {
+            result_ptr->ints[i] = b1.ints[i] + b2.ints[i] + carry;
+            if( (!carry && (result_ptr->ints[i] < b1.ints[i])) || (carry && (result_ptr->ints[i] <= b1.ints[i])) ) {
                 carry = 1;
             }
             else {
@@ -245,23 +309,100 @@ bigInt AddBigInts(bigInt b1, bigInt b2) {
             }
             i = i + 1;
         }
-        ret_val.sign = POSITIVE;
+        result_ptr->sign = POSITIVE;
+        bigInt temp;
+        InitialiseBigInt(&temp);
+        SetX(&temp, carry);
+        bigInt dummy;
+        InitialiseBigInt(&dummy);
+
+        if( carry != 0 ) {
+            AddBigInts(*carry_ptr, temp, &dummy, carry_ptr);
+        }
 
     }
     else if( !bs1 && bs2 ) {
         b2.sign = POSITIVE;
-        ret_val = SubtractBigInts(b1, b2);
+        *result_ptr = SubtractBigInts(b1, b2);
     }
     else if( bs1 && !bs2 ) {
         b1.sign = POSITIVE;
-        ret_val = SubtractBigInts(b2, b1);
+        *result_ptr = SubtractBigInts(b2, b1);
     }
     else if( bs1 && bs2 ) {
         b1.sign = POSITIVE; b2.sign = POSITIVE;
-        ret_val = AddBigInts(b1, b2);
-        ret_val.sign = NEGATIVE;
+        AddBigInts(b1, b2, carry_ptr, result_ptr);
+        result_ptr->sign = NEGATIVE;
+    }
+}
+
+Sign MultSign(Sign s1, Sign s2) {
+    Sign ret_val = POSITIVE;
+    if( (!s1 && !s2) || (s1 && s2) ) {
+        ret_val = POSITIVE;
+    }
+    else if( (!s1 && s2) || (s1 && !s2) ) {
+        ret_val = NEGATIVE;
     }
     return ret_val;
+}
+
+bigInt MultiplyBigInts(bigInt b1, bigInt b2) {
+    // init result matrix
+    bigInt result;
+    InitialiseBigInt(&result);
+
+    // initialise product matrix
+    uint64** products = (uint64**)malloc(sizeof(uint64*)*32);
+    int i = 0;
+    while( i < 32 ) {
+        products[i] = (uint64*)malloc(sizeof(uint64)*32);
+        i = i = 1;
+    }
+
+    int j = 0; i = 0;
+    while( i < 32 ) {
+        while( j < 32 ) {
+            products[i][j] = ((uint64)(b1.ints[i]))*((uint64)(b2.ints[j]));
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    // product matrix initialised
+
+    uint64 carry, sum, prev = 0;
+    uint32 val, next = 0;
+    carry = 0, sum = 0;
+
+    i = 0; j = 0; int total = 0;
+
+    while( total < 32 ) {
+        i = total; j = 0;
+        HalfAdder(0, prev, &sum, &carry);
+        while( j <= total ) {
+            HalfAdder(products[i][j], sum, &sum, &carry);
+            i = i - 1;
+            j = j + 1;
+        }
+        result.ints[total] = (uint32)(sum & 0x00000000ffffffff);
+        prev = (sum & 0xffffffff00000000); // explicit masking for clarity
+        prev = prev >> 32;
+        carry = carry << 32;
+        prev = prev + carry;
+
+        sum = 0; carry = 0;
+        total = total + 1;
+    }
+
+    // freeing the allocated space
+    i = 0; j = 0;
+    while( i < 32 ) {
+        free(products[i]); products[i] = NULL;
+    }
+    free(products); products = NULL;
+
+    result.sign = MultSign(b1.sign, b2.sign);
+    return result;
 }
 
 int main() {
@@ -297,7 +438,9 @@ int main() {
     free(str_bint2); str_bint2 = NULL;
 
     // adding the bigInts
-    result = AddBigInts(bint1, bint2); 
+    InitialiseBigInt(&dummy);
+    InitialiseBigInt(&result);
+    AddBigInts(bint1, bint2, &dummy, &result); 
     printf("Addition result:\n"); 
     str_result = Print_bigInt_hex(&result);
 
@@ -312,10 +455,22 @@ int main() {
     free(str_result); str_result = NULL;
     
     // subtracting them
-    result = SubtractBigInts(bint2, bint1);
+    result = SubtractBigInts(bint1, bint2);
     printf("Subtraction result:\n");
     str_result = Print_bigInt_hex(&result);
     free(str_result); str_result = NULL;
+
+    // multiplying two inputs
+    char MultInput1[] = "136411B3"; // 325325235 dec
+    char MultInput2[] = "4BBEE5251B"; // 325325235483 dec
+    char Answer[] = "5BCC6CFE7313BBCE1"; // 105836508684937313505 dec
+    SetBigIntHex(MultInput1, &bint1);
+    SetBigIntHex(MultInput2, &bint2);
+    result = MultiplyBigInts(bint1, bint2);
+    printf("Multiplication result:\n");
+    str_result = Print_bigInt_hex(&result);
+    free(str_result); str_result = NULL;
+
 
     // freeing dynamically allocated space for bigInts:
     FreeBigInt(&bint1); FreeBigInt(&bint2); FreeBigInt(&result);
