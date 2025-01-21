@@ -4,19 +4,10 @@
     Enrollment number: BT23CSE020
 */
 
+#include "bigInt.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-typedef enum{POSITIVE, NEGATIVE} Sign;
-typedef enum{FALSE, TRUE} Boolean;
-typedef int int32;
-typedef long long int int64;
-typedef unsigned int uint32;
-typedef unsigned long long int uint64;
-typedef struct int1024_tag {
-    Sign sign;
-    uint32* ints;
-}bigInt;
 
 void SetX(bigInt* bint_ptr, uint32 X) {
     bint_ptr->ints[0] = X;
@@ -145,23 +136,7 @@ char* Print_bigInt_hex(bigInt* bint_ptr) {
 
     char* str_start = s;
 
-    // removal of leading zeros
-    /*
-    char num_sign = s[0];
-    s = s + 1;
-    while( *s == '0' ) {
-        str_start = s;
-        s = s + 1;
-    }
-    *str_start = num_sign;
-    if( str_start[1] == '\0' ) {
-        str_start = str_start - 1;
-    }
-
-    
-    */
-
-    // removal of zeros - shifting approach
+    // removal of leading zeros - shifting approach
     uint32 i = 1; Boolean found = FALSE;
     while( (s[i] != '\0') && !found ) {
         if( s[i] != '0' ) {
@@ -277,7 +252,6 @@ bigInt SubtractBigInts(bigInt b1, bigInt b2) {
     } /* endif: b1 > b2 */
     return ret_val;
 }
-
 void HalfAdder(uint64 a, uint64 b, uint64* res_ptr, uint64* carry_ptr) {
     uint64 carry = 0;
     *res_ptr = a + b + carry;
@@ -289,7 +263,6 @@ void HalfAdder(uint64 a, uint64 b, uint64* res_ptr, uint64* carry_ptr) {
         *carry_ptr += 0;
     }
 }
-
 void AddBigInts(bigInt b1, bigInt b2, bigInt* carry_ptr, bigInt* result_ptr) {
     Sign bs1 = b1.sign, bs2 = b2.sign;
     if( !bs1 && !bs2 ) {
@@ -332,7 +305,6 @@ void AddBigInts(bigInt b1, bigInt b2, bigInt* carry_ptr, bigInt* result_ptr) {
         result_ptr->sign = NEGATIVE;
     }
 }
-
 Sign MultSign(Sign s1, Sign s2) {
     Sign ret_val = POSITIVE;
     if( (!s1 && !s2) || (s1 && s2) ) {
@@ -343,7 +315,6 @@ Sign MultSign(Sign s1, Sign s2) {
     }
     return ret_val;
 }
-
 bigInt MultiplyBigInts(bigInt b1, bigInt b2) {
     // init result matrix
     bigInt result;
@@ -403,99 +374,4 @@ bigInt MultiplyBigInts(bigInt b1, bigInt b2) {
     result.sign = MultSign(b1.sign, b2.sign);
     return result;
 }
-
-int main() {
-    char input1_dec[] = "+3902384390938023884"; /* 30573382 dec = 1D28346 hex, +3902384390938023884 dec = +36280DED86E3D7CC hex */
-    char input1_hex[] = "+36280DED86E3D7CC";
-    char input2_dec[] = "8902384390968597266";
-    char input2_hex[] = "7B8B9F6FCDAA5B12";
-    char addition_dec[] = "12804768781906621150";
-    char addition_hex[] = "+B1B3AD5D548E32DE";
-    bigInt bint1, bint2, result, dummy; char* output;
-    char *str_bint1, *str_bint2, *str_result, *str_dummy;
-
-    // initialising bigInts:
-    InitialiseBigInt(&bint1); InitialiseBigInt(&bint2);
-
-    // printing each uint32 field after initialisation:
-    printf("bint1:\n"); PrintAsItIs(&bint1); printf("bint2:\n"); PrintAsItIs(&bint2);
-
-    // printing hex string after init for verification
-    printf("before set: \n");
-    str_bint1 = Print_bigInt_hex(&bint1); str_bint2 = Print_bigInt_hex(&bint2);
-    free(str_bint1); str_bint1 = NULL;
-    free(str_bint2); str_bint2 = NULL;
-
-    // setting the bigInts to desired input value
-    SetBigIntHex(input1_hex, &bint1);
-    SetBigIntHex(input2_hex, &bint2);
-
-    // printing after setting:
-    printf("after setting:\n");
-    str_bint1 = Print_bigInt_hex(&bint1); str_bint2 = Print_bigInt_hex(&bint2);
-    free(str_bint1); str_bint1 = NULL;
-    free(str_bint2); str_bint2 = NULL;
-
-    // adding the bigInts
-    InitialiseBigInt(&dummy);
-    InitialiseBigInt(&result);
-    AddBigInts(bint1, bint2, &dummy, &result); 
-    printf("Addition result:\n"); 
-    str_result = Print_bigInt_hex(&result);
-
-    // comparing return string with target value:
-    if( strcmp(str_result, addition_hex) == 0 ) {
-        printf("Output and target strings match\n");
-    }
-    else {
-        printf("Output and target strings differ\n");
-    }
-
-    free(str_result); str_result = NULL;
-    
-    // subtracting them
-    result = SubtractBigInts(bint1, bint2);
-    printf("Subtraction result:\n");
-    str_result = Print_bigInt_hex(&result);
-    free(str_result); str_result = NULL;
-
-    // multiplying two inputs
-    /*
-        sample inputs:
-        operand 1:
-        // 331EEE3CC1F9D447F hex = 58938295839287493759 dec
-        // D34B4D102141CC5FF2D17964EE36CBF41 hex = 4493729478375839892748392839278599388993 dec
-
-        operand 2:
-        // 86947257947594963769476 dec = 12696B98A50591275884 hex
-        // CAA6F08F31365AE78A3AB0F714ABD9A6ED hex = 68958939020859489385793028485998395893485 dec
-
-        ans:
-        // 5124523211330192727213959787153919464700284 dec = 3AD39EC657405AFE8FB0EB1CB65ABAFBF97C hex
-    */
-    char MultInput1[] = "331EEE3CC1F9D447F"; // D34B4D102141CC5FF2D17964EE36CBF41 hex = 4493729478375839892748392839278599388993 dec
-    char MultInput2[] = "12696B98A50591275884"; // CAA6F08F31365AE78A3AB0F714ABD9A6ED hex = 68958939020859489385793028485998395893485 dec
-    char Answer[] = "3AD39EC657405AFE8FB0EB1CB65ABAFBF97C"; // A743342F7AA0EDC86B11B4C3D972C500A20AAB12614B92058990CCC618398CA352D hex = 309882817075558264594609038919817131806139263555242763746749377705418041309410605 dec
-    // 34740525889446160134312415869485101144 dec = 0x1A22C82B374E642EB01AB6362332B058 
-
-    printf("before mult set:\n");
-    PrintAsItIs(&bint1); PrintAsItIs(&bint2);
-    FreeBigInt(&bint1); FreeBigInt(&bint2);
-    InitialiseBigInt(&bint1); InitialiseBigInt(&bint2);
-    SetBigIntHex(MultInput1, &bint1);
-    SetBigIntHex(MultInput2, &bint2);
-
-    printf("after mult set:\n");
-    PrintAsItIs(&bint1); PrintAsItIs(&bint2);
-    result = MultiplyBigInts(bint1, bint2);
-    printf("Multiplication result:\n");
-    str_result = Print_bigInt_hex(&result);
-    free(str_result); str_result = NULL;
-
-
-    // freeing dynamically allocated space for bigInts:
-    FreeBigInt(&bint1); FreeBigInt(&bint2); FreeBigInt(&result);
-    return 0;
-}
-
 
