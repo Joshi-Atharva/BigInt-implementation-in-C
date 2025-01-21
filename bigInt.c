@@ -1,6 +1,7 @@
 /*
-    1024 bit integer (bigInt) implementation
+    CPL Assignment 1: 1024 bit integer (bigInt) implementation
     Author: Atharva Joshi
+    Enrollment number: BT23CSE020
 */
 
 #include <stdio.h>
@@ -187,12 +188,8 @@ char* Print_bigInt_hex(bigInt* bint_ptr) {
 }
 
 void FreeBigInt(bigInt* bint_ptr) {
-    uint32 i = 0;
     uint32* ints_ptr = bint_ptr->ints;
-    while( i < 32 ) {
-        free(ints_ptr + i);
-        i = i + 1;
-    }
+    free(ints_ptr);
     bint_ptr->ints = NULL;
 }
 
@@ -362,6 +359,7 @@ bigInt MultiplyBigInts(bigInt b1, bigInt b2) {
 
     int j = 0; i = 0;
     while( i < 32 ) {
+        j  = 0;
         while( j < 32 ) {
             products[i][j] = ((uint64)(b1.ints[i]))*((uint64)(b2.ints[j]));
             j = j + 1;
@@ -462,14 +460,30 @@ int main() {
     free(str_result); str_result = NULL;
 
     // multiplying two inputs
-    char MultInput1[] = "7"; // 325325235 dec
-    char MultInput2[] = "5"; // 325325235483 dec
-    char Answer[] = "19"; // 105836508684937313505 dec
+    /*
+        sample inputs:
+        operand 1:
+        // 331EEE3CC1F9D447F hex = 58938295839287493759 dec
+        // D34B4D102141CC5FF2D17964EE36CBF41 hex = 4493729478375839892748392839278599388993 dec
+
+        operand 2:
+        // 86947257947594963769476 dec = 12696B98A50591275884 hex
+        // CAA6F08F31365AE78A3AB0F714ABD9A6ED hex = 68958939020859489385793028485998395893485 dec
+
+        ans:
+        // 5124523211330192727213959787153919464700284 dec = 3AD39EC657405AFE8FB0EB1CB65ABAFBF97C hex
+    */
+    char MultInput1[] = "331EEE3CC1F9D447F"; // D34B4D102141CC5FF2D17964EE36CBF41 hex = 4493729478375839892748392839278599388993 dec
+    char MultInput2[] = "12696B98A50591275884"; // CAA6F08F31365AE78A3AB0F714ABD9A6ED hex = 68958939020859489385793028485998395893485 dec
+    char Answer[] = "3AD39EC657405AFE8FB0EB1CB65ABAFBF97C"; // A743342F7AA0EDC86B11B4C3D972C500A20AAB12614B92058990CCC618398CA352D hex = 309882817075558264594609038919817131806139263555242763746749377705418041309410605 dec
     // 34740525889446160134312415869485101144 dec = 0x1A22C82B374E642EB01AB6362332B058 
+
     printf("before mult set:\n");
     PrintAsItIs(&bint1); PrintAsItIs(&bint2);
-    // SetBigIntHex(MultInput1, &bint1);
-    // SetBigIntHex(MultInput2, &bint2);
+    FreeBigInt(&bint1); FreeBigInt(&bint2);
+    InitialiseBigInt(&bint1); InitialiseBigInt(&bint2);
+    SetBigIntHex(MultInput1, &bint1);
+    SetBigIntHex(MultInput2, &bint2);
 
     printf("after mult set:\n");
     PrintAsItIs(&bint1); PrintAsItIs(&bint2);
