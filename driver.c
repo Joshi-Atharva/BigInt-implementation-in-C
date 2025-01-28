@@ -108,5 +108,31 @@ int main() {
 
     // freeing dynamically allocated space for bigInts:
     FreeBigInt(&bint1); FreeBigInt(&bint2); FreeBigInt(&result);
+
+    // trying out decimal string input
+    char InputDec1[] = "-44610475097013365513301563148380817826";
+    char InputDec2[] = "5122895715137865095453046482382284526";
+
+    InitialiseBigInt(&bint1); InitialiseBigInt(&bint2);
+    printf("before dec set:\n");
+    PrintAsItIs(&bint1);
+    SetBigIntDec(InputDec1, &bint1); SetBigIntDec(InputDec2, &bint2);
+    PrintAsItIs(&bint1); PrintAsItIs(&bint2);
+    printf("first bint:\n");
+    str_result = Print_bigInt_hex(&bint1);
+    free(str_result); str_result = NULL;
+    printf("second bint:\n");
+    str_result = Print_bigInt_hex(&bint2);
+    free(str_result); str_result = NULL;
+
+    result = MultiplyBigInts(bint1, bint2);
+    printf("%s multiplied by %s = ", InputDec1, InputDec2);
+    str_result = Print_bigInt_hex(&result);
+    free(str_result); str_result = NULL;
+
+    // freeing dynamically allocated space for bigInts:
+    FreeBigInt(&bint1); FreeBigInt(&bint2); FreeBigInt(&result);
+
+
     return 0;
 }

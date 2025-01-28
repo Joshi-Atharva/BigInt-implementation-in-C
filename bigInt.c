@@ -88,7 +88,47 @@ void SetBigIntHex(char* hex, bigInt* bint_ptr) {
     }
 }
 
+void CopyBigInts(bigInt *b1_ptr, bigInt *b2_ptr) {
+    b1_ptr->sign = b2_ptr->sign;
+    int i = 0;
+    while( i < 32 ) {
+        (b1_ptr->ints)[i] = (b2_ptr->ints)[i];
+        i = i + 1;
+    }
+}
+void SetBigIntDec(char* dec, bigInt* bint_ptr) {
+    bigInt digit, pot, res, addend; // pot = power of ten, res = current result
+    InitialiseBigInt(&digit); InitialiseBigInt(&pot); InitialiseBigInt(&res); InitialiseBigInt(&addend);
+    bigInt ten, carry, res_copy; 
+    InitialiseBigInt(&ten); InitialiseBigInt(&carry); InitialiseBigInt(&res_copy);
+    uint32 dig;
+    SetX(&ten, 10);
+    SetX(&res, 0); 
+    SetX(&pot, 1);
+    SetX(&carry, 0);
 
+    int i = strlen(dec) - 1;
+    while( i >= 0 && ((dec[i] != '-') && (dec[i] != '+')) ) {
+        dig = (uint32)(dec[i] - '0');
+        SetX(&digit, dig);
+        addend = MultiplyBigInts(digit, pot);
+        CopyBigInts(&res_copy, &res);
+        AddBigInts(res_copy, addend, &carry, &res); 
+        pot = MultiplyBigInts(pot, ten);
+        i = i - 1;
+    }
+    if( dec[0] == '-' ) {
+        res.sign = NEGATIVE;
+    }
+    else {
+        res.sign = POSITIVE;
+    }
+    CopyBigInts(bint_ptr, &res);
+    // *bint_ptr = res; // memory leak
+    FreeBigInt(&digit); FreeBigInt(&pot); FreeBigInt(&addend); FreeBigInt(&res); 
+    FreeBigInt(&ten); FreeBigInt(&carry); FreeBigInt(&res_copy);
+}
+    
 void revstr(char* s) {
     if( s != NULL ) {
         int i = 0;

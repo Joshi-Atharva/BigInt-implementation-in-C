@@ -18,6 +18,8 @@ void InitialiseBigInt(bigInt* bint_ptr);
 bigInt* bigIntX(uint32 X);
 uint32 HexChar2Num(char c);
 void SetBigIntHex(char* hex, bigInt* bint_ptr);
+void CopyBigInts(bigInt *b1_ptr, bigInt *b2_ptr);
+void SetBigIntDec(char* dec, bigInt* bint_ptr);
 void revstr(char* s);
 char* Print_bigInt_hex(bigInt* bint_ptr);
 void FreeBigInt(bigInt* bint_ptr);
