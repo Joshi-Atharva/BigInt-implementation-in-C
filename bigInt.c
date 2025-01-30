@@ -113,7 +113,7 @@ void SetBigIntDec(char* dec, bigInt* bint_ptr) {
         SetX(&digit, dig);
         addend = MultiplyBigInts(digit, pot);
         CopyBigInts(&res_copy, &res);
-        AddBigInts(res_copy, addend, &carry, &res); 
+        AddBigInts(res_copy, addend, &carry, &res); /* passing res instead of res_copy with copy the memory address of res.ints, it will still refer to the same memory location. */
         pot = MultiplyBigInts(pot, ten);
         i = i - 1;
     }
@@ -124,7 +124,7 @@ void SetBigIntDec(char* dec, bigInt* bint_ptr) {
         res.sign = POSITIVE;
     }
     CopyBigInts(bint_ptr, &res);
-    // *bint_ptr = res; // memory leak
+    // *bint_ptr = res; // memory leak ( copies the address of res.ints to bint_ptr->ints, losing reference to the memory block previously pointed to by bint_ptr->ints )
     FreeBigInt(&digit); FreeBigInt(&pot); FreeBigInt(&addend); FreeBigInt(&res); 
     FreeBigInt(&ten); FreeBigInt(&carry); FreeBigInt(&res_copy);
 }
@@ -143,16 +143,16 @@ void revstr(char* s) {
     }
 }
 char* Print_bigInt_hex(bigInt* bint_ptr) {
-    char* s = (char*)malloc(sizeof(char)*66);
+    char* s = (char*)malloc(sizeof(char)*258);
     
     uint32* ints_ptr = bint_ptr->ints;
     uint32 ints_idx = 0, str_idx = 0; uint32 num, digit_idx, part;
     char dec2hex[] = "0123456789ABCDEF"; /* dictionary implementation using string for decimal to hex digit conversion */
-    uint32 first_non_zero_idx = 65;
-    while( ints_idx < 32 && str_idx < 64 ) {
+    uint32 first_non_zero_idx = 257;
+    while( ints_idx < 32 && str_idx < 256 ) {
         num = ints_ptr[ints_idx]; 
         part = 0;
-        while( part < 8 && str_idx < 64) {
+        while( part < 8 && str_idx < 256) {
             digit_idx = num & 15; /* BITMASKING: extracting last four bits for hex digit */
             s[str_idx] = dec2hex[digit_idx];
             part = part + 1;
@@ -188,7 +188,7 @@ char* Print_bigInt_hex(bigInt* bint_ptr) {
         }
     }
     i = 1;
-    while( (i + first_non_zero_idx - 1) < 65) { // s[i + first_non_zero_idx - 1] != '\0'
+    while( (i + first_non_zero_idx - 1) < 257) { // s[i + first_non_zero_idx - 1] != '\0'
         s[i] = s[i + first_non_zero_idx - 1];
         i = i + 1;
     }
@@ -296,7 +296,7 @@ void HalfAdder(uint64 a, uint64 b, uint64* res_ptr, uint64* carry_ptr) {
     uint64 carry = 0;
     *res_ptr = a + b + carry;
     // function is not made to handle the case of carry other than 0 or 1
-    if( (!carry && (*res_ptr < a)) || (carry && (*res_ptr <= a)) ) {
+    if( (!carry && (*res_ptr < a)) || (carry && (*res_ptr <= a)) ) { // second part of || is written for completeness sake, the first part is evaluated as carry is always set to 0
         *carry_ptr += 1;
     }
     else {
